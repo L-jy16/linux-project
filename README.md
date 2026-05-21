@@ -183,11 +183,13 @@ Docker를 이용하여
       chmod 770 api_keys
       chmod 770 /var/log/agent-app
       ls -ld /var/log/agent-app
+      getfacl /usr/bin/getfacl
      ```
 
      결과 이미지
      ![이미지설명](./image/36-1.png)
      ![이미지설명](./image/36-2.png)
+     ![이미지설명](./image/43.png)
 
    - 환경 변수 설정
 
@@ -278,6 +280,10 @@ Docker를 이용하여
 
      ```bash
       ./monitor.sh
+      ls -l /home/agent-admin/agent-app/bin/monitor.sh
+      getfacl /home/agent-admin/agent-app/upload_files
+      getfacl /home/agent-admin/agent-app/api_keys
+      getfacl /var/log/agent-app
      ```
 
      내용
@@ -325,6 +331,21 @@ Docker를 이용하여
 
       echo "DISK Used : $DISK%"
 
+      CPU_INT=$(printf "%.0f" "$CPU")
+      MEM_INT=$(printf "%.0f" "$MEM")
+
+      if [ "$CPU_INT" -gt 20 ]; then
+          echo "[WARNING] CPU threshold exceeded ($CPU% > 20%)"
+      fi
+
+      if [ "$MEM_INT" -gt 10 ]; then
+          echo "[WARNING] MEM threshold exceeded ($MEM% > 10%)"
+      fi
+
+      if [ "$DISK" -gt 80 ]; then
+          echo "[WARNING] DISK threshold exceeded ($DISK% > 80%)"
+      fi
+
       echo "[$NOW] PID:$PID CPU:$CPU% MEM:$MEM% DISK_USED:$DISK%" >> "$LOG_FILE"
 
       echo "[INFO] Log appended: $LOG_FILE"
@@ -334,6 +355,8 @@ Docker를 이용하여
      결과 이미지
      ![이미지설명](./image/35-1.png)
      ![이미지설명](./image/35-2.png)
+     ![이미지설명](./image/45.png)
+     ![이미지설명](./image/44.png)
 
    - 모니터링 로그 저장 기능 구현
 
