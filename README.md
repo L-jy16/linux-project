@@ -46,9 +46,9 @@ Docker를 이용하여
 
 5. 수행 결과
 
-   - Docker Ubuntu 22.04 환경 구축
+   - Docker Ubuntu 환경 구축
 
-     사용 명령어들
+     Docker를 이용해서 Ubuntu 컨터이너 환경을 구축하여 독립적인 환경을 구축하였습니다.
 
      ```bash
       docker pull ubuntu:22.04
@@ -60,6 +60,8 @@ Docker를 이용하여
      ![이미지설명](./image/2.png)
 
    - SSH 서버 설치 및 보안 설정
+
+     원격 접속을 위해 SSH 서비스를 설치하고 기본 포트를 20022로 변경했습니다.
 
      ```bash
       apt install openssh-server -y
@@ -96,11 +98,13 @@ Docker를 이용하여
 
    - 방화벽(UFW) 설정
 
+     SSH 접속과 Agent 서비스에 필요한 포트만 허용하여 불필요한 외부 접근을 제한하였습니다.
+
      ```bash
-      ufw allow 20022/tcp
-      ufw allow 15034/tcp
-      ufw enable
-      ufw status
+       ufw allow 20022/tcp
+       ufw allow 15034/tcp
+       ufw enable
+       ufw status
      ```
 
      결과 이미지
@@ -113,6 +117,8 @@ Docker를 이용하여
      ![이미지설명](./image/21.png)
 
    - 사용자 계정 생성
+
+     서비스 운영에 필요한 사용자 계정을 생성하여 계정을 관리하였습니다.
 
      ```bash
       useradd -m agent-admin
@@ -129,6 +135,8 @@ Docker를 이용하여
      ![이미지설명](./image/23.png)
 
    - 그룹 생성 및 사용자 그룹 할당
+
+     공동 작업 및 권한 관리를 위해 그룹을 생성하고 사용자별로 그룹 권한을 정하였습니다.
 
      ```bash
       groupadd agent-common
@@ -149,6 +157,8 @@ Docker를 이용하여
 
    - 프로젝트 디렉토리 구조 생성
 
+     서비스 운영에 필용한 업로드 디렉토리를 생성하였습니다.
+
      ```bash
       mkdir -p /home/agent-admin/agent-app/upload_files
       mkdir -p /home/agent-admin/agent-app/api_keys
@@ -166,6 +176,8 @@ Docker를 이용하여
 
    - 디렉토리 및 파일 권한 설정
 
+     접근 권한을 설정하여 보안을 강화하였습니다.
+
      ```bash
       chmod 770 upload_files
       chmod 770 api_keys
@@ -179,6 +191,8 @@ Docker를 이용하여
 
    - 환경 변수 설정
 
+     서비스 실행에 필요한 환경 변수를 등록하였습니다.
+
      ```bash
       export AGENT_HOME=/home/agent-admin/agent-app
       export AGENT_PORT=15034
@@ -190,6 +204,8 @@ Docker를 이용하여
 
    - API Key 파일 생성
 
+     서비스에서 사용할 API Key 파일을 만들어 저장하였습니다.
+
      ```bash
       echo "agent_api_key_test" > $AGENT_KEY_PATH
       cat $AGENT_KEY_PATH
@@ -199,6 +215,8 @@ Docker를 이용하여
      ![이미지설명](./image/32.png)
 
    - Agent 서비스 작성 및 실행
+
+     Agent 프로그램을 실행하여 Boot Check를 수행하였습니다.
 
      ```bash
       python3 agent_app.py
@@ -245,6 +263,8 @@ Docker를 이용하여
 
    - 서비스 포트(15034) 개방 확인
 
+     Agent 서비가 정상적으로 실행이 되는지 확인 하였습니다.
+
      ```bash
       ss -tulnp | grep 15034
      ```
@@ -253,6 +273,8 @@ Docker를 이용하여
      ![이미지설명](./image/34.png)
 
    - monitor.sh 모니터링 스크립트 작성
+
+     시스템 상태를 수집하는 스크립트를 작성하였습니다.
 
      ```bash
       ./monitor.sh
@@ -315,6 +337,8 @@ Docker를 이용하여
 
    - 모니터링 로그 저장 기능 구현
 
+     모닝터링 결과를 로그 파일에 저장하였습니다.
+
      ```bash
       tail -n 5 /var/log/agent-app/monitor.log
      ```
@@ -324,6 +348,8 @@ Docker를 이용하여
      ![이미지설명](./image/37-2.png)
 
    - Cron 자동 실행 설정
+
+     Cron을 이용하여 monitor.sh를 자동 실행하도록 설정하였습니다.
 
      ```bash
       crontab -e
@@ -341,7 +367,9 @@ Docker를 이용하여
      ![이미지설명](./image/39.png)
      ![이미지설명](./image/40.png)
 
-   - monitor.log 자동 누적 확인
+   - monitor.log 자동 누적
+
+     1분마다 로그가 누적되는 것을 확인하였습니다.
 
      ```bash
       tail -n 20 /var/log/agent-app/monitor.log
