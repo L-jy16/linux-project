@@ -24,7 +24,6 @@ Docker를 이용하여
 - [✔] 환경 변수 설정
 - [✔] API Key 파일 생성
 - [✔] Agent 서비스 작성 및 실행
-- [✔] Agent READY 출력 확인
 - [✔] 서비스 포트(15034) 개방 확인
 - [✔] monitor.sh 모니터링 스크립트 작성
 - [✔] 모니터링 로그 저장 기능 구현
@@ -57,6 +56,8 @@ Docker를 이용하여
      ```
 
      결과 이미지
+     ![이미지설명](./image/1.png)
+     ![이미지설명](./image/2.png)
 
    - SSH 서버 설치 및 보안 설정
 
@@ -85,6 +86,14 @@ Docker를 이용하여
       PermitRootLogin no
      ```
 
+     결과 이미지
+     ![이미지설명](./image/10.png)
+     ![이미지설명](./image/11.png)
+     ![이미지설명](./image/12.png)
+     ![이미지설명](./image/13.png)
+     ![이미지설명](./image/14.png)
+     ![이미지설명](./image/15.png)
+
    - 방화벽(UFW) 설정
 
      ```bash
@@ -93,6 +102,15 @@ Docker를 이용하여
       ufw enable
       ufw status
      ```
+
+     결과 이미지
+     ![이미지설명](./image/16.png)
+     ![이미지설명](./image/17.png)
+     ![이미지설명](./image/17.png)
+     ![이미지설명](./image/18.png)
+     ![이미지설명](./image/19.png)
+     ![이미지설명](./image/20.png)
+     ![이미지설명](./image/21.png)
 
    - 사용자 계정 생성
 
@@ -105,6 +123,10 @@ Docker를 이용하여
       passwd agent-dev
       passwd agent-test
      ```
+
+     결과 이미지
+     ![이미지설명](./image/22.png)
+     ![이미지설명](./image/23.png)
 
    - 그룹 생성 및 사용자 그룹 할당
 
@@ -121,6 +143,10 @@ Docker를 이용하여
       id agent-test
      ```
 
+     결과 이미지
+     ![이미지설명](./image/24.png)
+     ![이미지설명](./image/25.png)
+
    - 프로젝트 디렉토리 구조 생성
 
      ```bash
@@ -131,6 +157,13 @@ Docker를 이용하여
       ls -ld /home/agent-admin/agent-app/*
      ```
 
+     결과 이미지
+     ![이미지설명](./image/26.png)
+     ![이미지설명](./image/27.png)
+     ![이미지설명](./image/28.png)
+     ![이미지설명](./image/29.png)
+     ![이미지설명](./image/30.png)
+
    - 디렉토리 및 파일 권한 설정
 
      ```bash
@@ -140,6 +173,10 @@ Docker를 이용하여
       ls -ld /var/log/agent-app
      ```
 
+     결과 이미지
+     ![이미지설명](./image/36-1.png)
+     ![이미지설명](./image/36-2.png)
+
    - 환경 변수 설정
 
      ```bash
@@ -148,12 +185,18 @@ Docker를 이용하여
       echo $AGENT_HOME
      ```
 
+     결과 이미지
+     ![이미지설명](./image/31.png)
+
    - API Key 파일 생성
 
      ```bash
       echo "agent_api_key_test" > $AGENT_KEY_PATH
       cat $AGENT_KEY_PATH
      ```
+
+     결과 이미지
+     ![이미지설명](./image/32.png)
 
    - Agent 서비스 작성 및 실행
 
@@ -197,17 +240,17 @@ Docker를 이용하여
           time.sleep(60)
      ```
 
-   - Agent READY 출력 확인
-
-     ```bash
-
-     ```
+     결과 이미지
+     ![이미지설명](./image/33.png)
 
    - 서비스 포트(15034) 개방 확인
 
      ```bash
       ss -tulnp | grep 15034
      ```
+
+     결과 이미지
+     ![이미지설명](./image/34.png)
 
    - monitor.sh 모니터링 스크립트 작성
 
@@ -266,17 +309,19 @@ Docker를 이용하여
 
      ```
 
-   - 시스템 자원(CPU, Memory, Disk) 모니터링 구현
-
-     ```bash
-
-     ```
+     결과 이미지
+     ![이미지설명](./image/35-1.png)
+     ![이미지설명](./image/35-2.png)
 
    - 모니터링 로그 저장 기능 구현
 
      ```bash
       tail -n 5 /var/log/agent-app/monitor.log
      ```
+
+     결과 이미지
+     ![이미지설명](./image/37-1.png)
+     ![이미지설명](./image/37-2.png)
 
    - Cron 자동 실행 설정
 
@@ -291,8 +336,16 @@ Docker를 이용하여
       * * * * * /home/agent-admin/agent-app/bin/monitor.sh
      ```
 
+     결과 이미지
+     ![이미지설명](./image/38.png)
+     ![이미지설명](./image/39.png)
+     ![이미지설명](./image/40.png)
+
    - monitor.log 자동 누적 확인
 
      ```bash
       tail -n 20 /var/log/agent-app/monitor.log
      ```
+
+     결과 이미지
+     ![이미지설명](./image/42.png)
