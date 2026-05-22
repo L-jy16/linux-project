@@ -331,63 +331,70 @@ Docker를 이용하여
      ```bash
       #!/bin/bash
 
-      LOG_FILE="/var/log/agent-app/monitor.log"
+      LOG_FILE="/var/log/agent-app/monitor.log" # 로그를 저장할 파일 경로
 
-      APP_NAME="agent_app.py"
+      APP_NAME="agent_app.py" # 모니터링할 프로그램 이름
 
-      APP_PORT="15034"
+      APP_PORT="15034" # 모니터링할 서비스 포트 번호
 
-      NOW=$(date "+%Y-%m-%d %H:%M:%S")
+      NOW=$(date "+%Y-%m-%d %H:%M:%S") # 현재 날짜와 시간을 저장
 
-      PID=$(pgrep -f "$APP_NAME")
+      PID=$(pgrep -f "$APP_NAME") # 프로그램의 PID(Process ID) 조회(pgrep -f : 프로세스 이름으로 검색)
 
       echo "====== SYSTEM MONITOR RESULT ======"
 
       echo "[HEALTH CHECK]"
 
-      if [ -z "$PID" ]; then
-        echo "Checking process '$APP_NAME'... [FAIL]"
+      if [ -z "$PID" ]; then # 프로세스가 실행 중인지 확인
+        echo "Checking process '$APP_NAME'... [FAIL]" # PID가 없으면 프로그램이 실행되지 않은 상태
         exit 1
       else
-        echo "Checking process '$APP_NAME'... [OK] (PID: $PID)"
+        echo "Checking process '$APP_NAME'... [OK] (PID: $PID)" # PID가 있으면 정상 실행 중
       fi
 
-      if ss -tulnp | grep -q ":$APP_PORT"; then
+      if ss -tulnp | grep -q ":$APP_PORT"; then # 지정된 포트가 LISTEN 상태인지 확인(grep -q : 결과만 확인하고 화면에는 출력하지 않음)
         echo "Checking port $APP_PORT... [OK]"
       else
         echo "Checking port $APP_PORT... [FAIL]"
         exit 1
       fi
 
-      CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
 
-      MEM=$(free | awk '/Mem:/ {printf("%.1f", $3/$2 * 100)}')
+      CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}') # CPU 사용률 조회, top 명령어 결과에서 Idle(유휴) 비율을 제외하여 실제 사용률 계산
 
-      DISK=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+      MEM=$(free | awk '/Mem:/ {printf("%.1f", $3/$2 * 100)}') # 메모리 사용률 조회, 사용 메모리 ÷ 전체 메모리 × 100
 
+      DISK=$(df / | awk 'NR==2 {print $5}' | sed 's/%//') # 디스크 사용률 조회, 루트(/) 파티션의 사용률만 추출, sed를 이용하여 % 기호 제거
+
+      # 현재 시스템 자원 상태 출력
       echo "CPU Usage : $CPU%"
 
       echo "MEM Usage : $MEM%"
 
       echo "DISK Used : $DISK%"
 
+      # 소수점 값을 정수로 변환, 임계값 비교를 위해 사용
       CPU_INT=$(printf "%.0f" "$CPU")
       MEM_INT=$(printf "%.0f" "$MEM")
 
+      # CPU 사용률이 20%를 초과하면 경고 출력
       if [ "$CPU_INT" -gt 20 ]; then
           echo "[WARNING] CPU threshold exceeded ($CPU% > 20%)"
       fi
 
+      # 메모리 사용률이 10%를 초과하면 경고 출력
       if [ "$MEM_INT" -gt 10 ]; then
           echo "[WARNING] MEM threshold exceeded ($MEM% > 10%)"
       fi
 
+      # 디스크 사용률이 80%를 초과하면 경고 출력
       if [ "$DISK" -gt 80 ]; then
           echo "[WARNING] DISK threshold exceeded ($DISK% > 80%)"
       fi
-
+      # 로그 파일에 현재 상태 저장 (> 연산자는 덮어쓰기, >>는 기존 내용에 이어서 추가)
       echo "[$NOW] PID:$PID CPU:$CPU% MEM:$MEM% DISK_USED:$DISK%" >> "$LOG_FILE"
 
+      # 로그 저장 완료 메시지 출력
       echo "[INFO] Log appended: $LOG_FILE"
 
      ```
@@ -398,7 +405,23 @@ Docker를 이용하여
      ![이미지설명](./image/45.png)
      ![이미지설명](./image/44.png)
 
-   - pgrep 명령어 선택 이유
+     ## => 자원 사용량 추출 및 로그 포맷 설명
+
+     이 스크립트에서는 `top`, `free`, `df` 명령어를 사용하여 CPU, 메모리, 디스크 사용량을 수집하였습니다.
+
+     CPU 사용률은 `top -bn1` 명령어로 한 번만 조회한 뒤, `awk`를 사용하여 CPU가 쉬고 있는 Idle 값을 제외하고 실제 사용률을 계산하였습니다..
+
+     메모리 사용률은 `free` 명령어 결과에서 전체 메모리와 사용 중인 메모리 값을 `awk`로 추출하여 `사용 중 메모리 / 전체 메모리 × 100` 방식으로 계산하였습니다..
+
+     디스크 사용률은 `df /` 명령어로 루트 디렉토리(`/`)의 사용량을 확인하고, `awk`로 사용률 부분만 가져온 뒤 `sed`로 `%` 기호를 제거하였습니다. 이렇게 숫자만 남기면 80% 초과 여부를 비교하기 쉽습니다..
+
+     로그는 `[날짜 시간] PID:프로세스번호 CPU:사용률 MEM:사용률 DISK_USED:디스크사용률` 형식으로 고정하였습니다. 로그 형식을 고정하면 사람이 읽기 쉽고, 나중에 `grep`, `awk`, `sed` 같은 명령어로 특정 값만 찾아 분석하기 쉽습니다. 또한 장애가 발생했을 때 특정 시간의 CPU, 메모리, 디스크 상태를 빠르게 확인할 수 있습니다.
+
+   - pgrep와 ss 명령어 선택 이유
+
+     pgrep 명령어를 선택한 이유는 프로세스 이름을 기준으로 PID를 쉽게 검색 할 수 있습니다. pgrep은 특정 프로세스 존재 여부를 간단하게 확인할 수 있어 모니터링 스크립트에 적합하다고 생각되어 선택하였습니다.
+
+     ss 명령어를 선택한 이뉴는 ss는 현재 시스템의 네트워크 소켓 상태를 빠르게 확
 
    - 모니터링 로그 저장 기능 구현
 
