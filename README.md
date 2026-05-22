@@ -198,6 +198,14 @@ Docker를 이용하여
 
       특히 api_keys 디렉토리는 인증 정보가 저장되는 위치이므로 agent-core 그룹만 접근할 수 있도록 설정하여 최소 권한 원칙을 적용하였습니다.
 
+      또한 monitor.sh 파일은 agent-dev:agent-core 소유로 설정하고 권한을 750으로 부여하였습니다. 이를 통해 agent-dev는 스크립트를 작성하고 수정할 수 있으며, agent-core 그룹에 속한 agent-admin은 cron을 통해 스크립트를 실행할 수 있도록 구성하였습니다.
+
+      반면 agent-test는 agent-core 그룹에 포함되지 않으므로 monitor.sh, api_keys, /var/log/agent-app과 같은 중요 자원에 접근할 수 없습니다.
+
+      로그 디렉토리(/var/log/agent-app)는 agent-admin:agent-core 소유로 설정하고 권한을 770으로 부여하였으며, monitor.log 파일은 660 권한을 적용하였습니다. 이를 통해 cron 실행 계정인 agent-admin이 로그를 기록할 수 있고, agent-core 그룹 사용자는 로그를 확인할 수 있지만 그 외 사용자는 접근할 수 없도록 구성하였습니다.
+
+      이와 같이 역할에 따라 수정 권한, 실행 권한, 로그 접근 권한을 분리하여 보안성과 관리 효율성을 높였습니다.
+
       ```bash
        chmod 770 upload_files
        chmod 770 api_keys
