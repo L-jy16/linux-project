@@ -68,6 +68,7 @@ Docker를 이용하여
      ```bash
       apt install openssh-server -y
       vim /etc/ssh/sshd_config
+      ss -tulnp | grep sshd # 현재 SSH 서비스가 어떤 포트에서 실행 중인지 확인
      ```
 
      sshd_config 변경 전
@@ -100,13 +101,13 @@ Docker를 이용하여
 
    - 방화벽(UFW) 설정
 
-     SSH 접속과 Agent 서비스에 필요한 포트만 허용하여 불필요한 외부 접근을 제한하였습니다.
+     SSH 접속과 Agent 서비스에 필요한 포트 20022번과 포트 15034번만 허용하여 불필요한 외부 접근을 제한하였습니다.
 
      ```bash
-       ufw allow 20022/tcp
-       ufw allow 15034/tcp
-       ufw enable
-       ufw status
+       ufw allow 20022/tcp  # 포트번호 20022번 허용
+       ufw allow 15034/tcp  # 포트번호 15034번 허용
+       ufw enable # 방화벽 활성화
+       ufw status # 방화벽 규칙 확인
      ```
 
      결과 이미지
@@ -156,7 +157,7 @@ Docker를 이용하여
 
    - 프로젝트 디렉토리 구조 생성
 
-     서비스 운영에 필용한 업로드 디렉토리를 생성하였습니다.
+     서비스 운영에 필요한 디렉토리를 필요에 맞게 폴더를 생성하고 그 안에 보관하여 관리하기 쉽게 하였습니다.
 
      ```bash
       mkdir -p /home/agent-admin/agent-app/upload_files
@@ -190,7 +191,9 @@ Docker를 이용하여
 
    - 환경 변수 설정
 
-     서비스 실행에 필요한 환경 변수를 등록하였습니다.
+     <!-- 서비스 실행에 필요한 환경 변수를 등록하였습니다. -->
+
+     프로그램 안에 직접 경로를 적으면 나중에 변경하기 어려워 환경변수를 사용하여 설정값을 바꾸면 되도록하여 유지보수를 편리하게 하였습니다.
 
      ```bash
       export AGENT_HOME=/home/agent-admin/agent-app
@@ -215,7 +218,7 @@ Docker를 이용하여
 
    - Agent 서비스 작성 및 실행
 
-     Agent 프로그램을 실행하여 Boot Check를 수행하였습니다.
+     Agent 프로그램을 실행하여 필요한 파일, 환경 변수, 포트가 준비 되었는지 확인하였습니다. 만일 준비가 다 되었다고 판단되면 Agent READY가 출력됩니다.
 
      ```bash
       python3 agent_app.py
@@ -262,7 +265,7 @@ Docker를 이용하여
 
    - 서비스 포트(15034) 개방 확인
 
-     Agent 서비가 정상적으로 실행이 되는지 확인 하였습니다.
+     15034 포트가 LISTEN 상태인 것을 확인하여 정상 실행을 검증했습니다.
 
      ```bash
       ss -tulnp | grep 15034
@@ -273,7 +276,8 @@ Docker를 이용하여
 
    - monitor.sh 모니터링 스크립트 작성
 
-     시스템 상태를 수집하는 스크립트를 작성하였습니다.
+     monitor.sh는 서버가 정상 동작하는지 자동으로 확인하고 CPU, 메모리, 디스크 사용량을 기록합니다.
+     자원 사용량이 너무 높아지면 서버가 느려질 수 있으므로 기준을 넘으면 WARNING 메시지를 출력하도록 만들었습니다.
 
      ```bash
       ./monitor.sh
@@ -357,7 +361,7 @@ Docker를 이용하여
 
    - 모니터링 로그 저장 기능 구현
 
-     모닝터링 결과를 로그 파일에 저장하였습니다.
+     서버 상태를 지속적으로 monitor.log에 저장하였습니다.
 
      ```bash
       tail -n 5 /var/log/agent-app/monitor.log
