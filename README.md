@@ -198,8 +198,6 @@ Docker를 이용하여
 
      특히 api_keys 디렉토리는 인증 정보가 저장되는 위치이므로 agent-core 그룹만 접근할 수 있도록 설정하여 최소 권한 원칙을 적용하였습니다.
 
-     또한 getfacl 명령어를 사용하여 권한이 정상적으로 설정되었는지 확인하였습니다.
-
      ```bash
       chmod 770 upload_files
       chmod 770 api_keys
@@ -399,6 +397,8 @@ Docker를 이용하여
      ![이미지설명](./image/35-2.png)
      ![이미지설명](./image/45.png)
      ![이미지설명](./image/44.png)
+
+   - pgrep 명령어 선택 이유
 
    - 모니터링 로그 저장 기능 구현
 
