@@ -183,13 +183,11 @@ Docker를 이용하여
       chmod 770 api_keys
       chmod 770 /var/log/agent-app
       ls -ld /var/log/agent-app
-      getfacl /usr/bin/getfacl
      ```
 
      결과 이미지
      ![이미지설명](./image/36-1.png)
      ![이미지설명](./image/36-2.png)
-     ![이미지설명](./image/43.png)
 
    - 환경 변수 설정
 
