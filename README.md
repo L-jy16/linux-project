@@ -265,37 +265,242 @@ Docker를 이용하여
       내용
 
       ```bash
-       import time
-       import socket
-       import os
+      import time      # 프로그램을 일정 시간 동안 유지하기 위한 time 모듈
+      import socket    # TCP 서버 소켓 생성 및 포트 관리용 모듈
+      import os        # 환경 변수 및 파일 권한 확인을 위한 운영체제 인터페이스 모듈
+      import sys       # 프로그램 종료(exit) 처리를 위한 모듈
 
-       print("Starting Agent Boot Sequence...")
+      print("Starting Agent Boot Sequence...")
+      # Agent 서비스 부팅 시작 메시지 출력
 
-       print("[1/5] Checking User Account [OK]")
-       print(f"... Running as service user '{os.getenv('USER', 'unknown')}'")
+      # ============================================================
+      # Boot Check 1 : 서비스 실행 계정 확인
+      # ============================================================
 
-       print("[2/5] Verifying Environment Variables [OK]")
-       print("... All required Envs correct")
+      print("[1/5] Checking User Account", end=" ")
+      # 사용자 계정 점검 단계 출력
+      # end=" " 옵션으로 다음 출력이 같은 줄에 이어서 표시됨
 
-       print("[3/5] Checking Required Files [OK]")
-       print("... Verified key file with correct key string.")
+      user = os.getenv("USER") or os.getenv("LOGNAME") or "unknown"
+      # USER 또는 LOGNAME 환경변수에서 현재 실행 계정을 가져옴
+      # 둘 다 없으면 "unknown" 사용
 
-       print("[4/5] Checking Port Availability [OK]")
-       print("... Port 15034 is available.")
+      if user == "root":
+          # root 계정으로 실행 중인 경우
 
-       print("[5/5] Verifying Log Permission [OK]")
-       print("... Log directory is writable: /var/log/agent-app")
+          print("[FAIL]")
+          # 점검 실패 표시
 
-       print("------------------------------------------------------------")
-       print("All Boot Checks Passed!")
-       print("Agent READY")
+          print("... Root user is not allowed.")
+          # root 계정 실행 금지 안내
 
-       server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-       server.bind(("0.0.0.0", 15034))
-       server.listen(5)
+          sys.exit(1)
+          # 오류 코드 1과 함께 프로그램 종료
 
-       while True:
-           time.sleep(60)
+      else:
+          # root 계정이 아닌 경우
+
+          print("[OK]")
+          # 점검 성공 표시
+
+          print(f"... Running as service user '{user}'")
+          # 현재 서비스 실행 계정 출력
+
+      # ============================================================
+      # Boot Check 2 : 필수 환경 변수 확인
+      # ============================================================
+
+      print("[2/5] Verifying Environment Variables", end=" ")
+      # 환경 변수 검증 단계 출력
+
+      required_envs = [
+          "AGENT_HOME",         # 프로젝트 루트 디렉토리
+          "AGENT_PORT",         # 서비스 포트 번호
+          "AGENT_UPLOAD_DIR",   # 업로드 파일 저장 경로
+          "AGENT_KEY_PATH",     # API Key 파일 경로
+          "AGENT_LOG_DIR"       # 로그 저장 경로
+      ]
+
+      missing_envs = []
+      # 누락된 환경변수 목록 저장용 리스트
+
+      for env in required_envs:
+          # 필수 환경변수를 하나씩 검사
+
+          if not os.getenv(env):
+              # 환경변수가 존재하지 않으면
+
+              missing_envs.append(env)
+              # 누락 목록에 추가
+
+      if missing_envs:
+          # 하나라도 누락된 경우
+
+          print("[FAIL]")
+          # 점검 실패 출력
+
+          print(f"... Missing Envs: {', '.join(missing_envs)}")
+          # 누락된 환경변수 목록 출력
+
+          sys.exit(1)
+          # 프로그램 종료
+
+      else:
+          # 모든 환경변수가 존재하는 경우
+
+          print("[OK]")
+          # 점검 성공 출력
+
+          print("... All required Envs correct")
+          # 환경변수 정상 확인 메시지
+
+      # ============================================================
+      # Boot Check 3 : 필수 파일(API Key) 확인
+      # ============================================================
+
+      print("[3/5] Checking Required Files", end=" ")
+      # 필수 파일 확인 단계 출력
+
+      key_path = os.getenv("AGENT_KEY_PATH")
+      # 환경변수에 저장된 API Key 파일 경로 읽기
+
+      try:
+          # 파일 열기 시도
+
+          with open(key_path, "r") as file:
+              # API Key 파일 읽기 모드로 열기
+
+              key_value = file.read().strip()
+              # 파일 내용 읽고 공백 제거
+
+          if key_value != "agent_api_key_test":
+              # 파일 내용이 요구된 키 문자열과 다르면
+
+              print("[FAIL]")
+              # 점검 실패 출력
+
+              print("... Key file exists, but key string is incorrect.")
+              # 잘못된 키 값 안내
+
+              sys.exit(1)
+              # 프로그램 종료
+
+          print("[OK]")
+          # 점검 성공 출력
+
+          print("... Verified key file with correct key string.")
+          # 올바른 키 값 확인 완료
+
+      except FileNotFoundError:
+          # 파일이 존재하지 않는 경우
+
+          print("[FAIL]")
+
+          print(f"... Key file not found: {key_path}")
+          # 파일 경로 출력
+
+          sys.exit(1)
+
+      except PermissionError:
+          # 파일 접근 권한이 없는 경우
+
+          print("[FAIL]")
+
+          print(f"... Permission denied: {key_path}")
+          # 권한 오류 출력
+
+          sys.exit(1)
+
+      # ============================================================
+      # Boot Check 4 : 포트 사용 가능 여부 확인
+      # ============================================================
+
+      print("[4/5] Checking Port Availability", end=" ")
+      # 포트 상태 확인 단계 출력
+
+      port = int(os.getenv("AGENT_PORT", "15034"))
+      # 환경변수에서 포트 번호를 읽음
+      # 없으면 기본값 15034 사용
+
+      server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      # IPv4(AF_INET) 기반 TCP(SOCK_STREAM) 서버 소켓 생성
+
+      try:
+          # 포트 바인딩 시도
+
+          server.bind(("0.0.0.0", port))
+          # 모든 네트워크 인터페이스에서 지정 포트 사용
+
+          print("[OK]")
+          # 점검 성공 출력
+
+          print(f"... Port {port} is available.")
+          # 포트 사용 가능 메시지 출력
+
+      except OSError:
+          # 포트 사용 불가 또는 이미 사용 중인 경우
+
+          print("[FAIL]")
+
+          print(f"... Port {port} is already in use or cannot be opened.")
+          # 오류 원인 출력
+
+          sys.exit(1)
+
+      # ============================================================
+      # Boot Check 5 : 로그 디렉토리 권한 확인
+      # ============================================================
+
+      print("[5/5] Verifying Log Permission", end=" ")
+      # 로그 디렉토리 쓰기 권한 확인 단계 출력
+
+      log_dir = os.getenv("AGENT_LOG_DIR", "/var/log/agent-app")
+      # 로그 저장 디렉토리 경로 읽기
+      # 환경변수가 없으면 기본값 사용
+
+      if os.access(log_dir, os.W_OK):
+          # 디렉토리에 쓰기 권한이 존재하는 경우
+
+          print("[OK]")
+
+          print(f"... Log directory is writable: {log_dir}")
+          # 정상 메시지 출력
+
+      else:
+          # 쓰기 권한이 없는 경우
+
+          print("[FAIL]")
+
+          print(f"... Log directory is not writable: {log_dir}")
+          # 권한 오류 출력
+
+          sys.exit(1)
+
+      # ============================================================
+      # 모든 점검 완료
+      # ============================================================
+
+      print("------------------------------------------------------------")
+      # 구분선 출력
+
+      print("All Boot Checks Passed!")
+      # 모든 부팅 점검 통과 메시지
+
+      print("Agent READY")
+      # Agent 서비스 준비 완료 메시지
+
+      # ============================================================
+      # TCP 서버 시작
+      # ============================================================
+
+      server.listen(5)
+      # 최대 5개의 연결 요청을 대기할 수 있도록 서버 시작
+
+      while True:
+          # 무한 루프 실행
+
+          time.sleep(60)
+          # 60초마다 대기하여 프로세스가 종료되지 않고 계속 유지되도록 함
       ```
 
       결과 이미지
@@ -327,83 +532,141 @@ Docker를 이용하여
       수집된 정보를 바탕으로 서버 상태를 출력하고 로그 파일에 기록하도록 구현하였습니다.
 
       ```bash
-       ./monitor.sh
-       ls -l /home/agent-admin/agent-app/bin/monitor.sh
-       getfacl /home/agent-admin/agent-app/upload_files
-       getfacl /home/agent-admin/agent-app/api_keys
-       getfacl /var/log/agent-app
-      ```
+      #!/bin/bash
+      # Bash 셸 환경에서 실행되는 스크립트임을 지정
 
-      내용
+      LOG_FILE="/var/log/agent-app/monitor.log"
+      # 모니터링 결과를 저장할 로그 파일 경로
 
-      ```bash
-       #!/bin/bash
+      APP_NAME="agent_app.py"
+      # 모니터링 대상 Agent 프로그램 이름
 
-       LOG_FILE="/var/log/agent-app/monitor.log" # 로그를 저장할 파일 경로
+      APP_PORT="15034"
+      # Agent 서비스가 사용하는 포트 번호
 
-       APP_NAME="agent_app.py" # 모니터링할 프로그램 이름
+      NOW=$(date "+%Y-%m-%d %H:%M:%S")
+      # 현재 날짜와 시간을 저장
+      # 로그 기록 시 실행 시점을 남기기 위함
 
-       APP_PORT="15034" # 모니터링할 서비스 포트 번호
+      PID=$(pgrep -f "$APP_NAME" | head -n 1)
+      # 실행 중인 agent_app.py 프로세스 검색
+      # 여러 개가 존재할 경우 첫 번째 PID만 사용
 
-       NOW=$(date "+%Y-%m-%d %H:%M:%S") # 현재 날짜와 시간을 저장
+      echo "====== SYSTEM MONITOR RESULT ======"
+      # 모니터링 결과 제목 출력
 
-       PID=$(pgrep -f "$APP_NAME") # 프로그램의 PID(Process ID) 조회(pgrep -f : 프로세스 이름으로 검색)
+      echo "[HEALTH CHECK]"
+      # 상태 점검 영역 시작
 
-       echo "====== SYSTEM MONITOR RESULT ======"
+      if [ -z "$PID" ]; then
+      # PID 값이 비어있으면 프로세스가 실행 중이 아님
 
-       echo "[HEALTH CHECK]"
+          echo "Checking process '$APP_NAME'... [FAIL]"
+          # 프로세스 확인 실패 메시지 출력
 
-       if [ -z "$PID" ]; then # 프로세스가 실행 중인지 확인
-         echo "Checking process '$APP_NAME'... [FAIL]" # PID가 없으면 프로그램이 실행되지 않은 상태
-         exit 1
-       else
-         echo "Checking process '$APP_NAME'... [OK] (PID: $PID)" # PID가 있으면 정상 실행 중
-       fi
+          exit 1
+          # 오류 코드 1과 함께 스크립트 종료
 
-       if ss -tulnp | grep -q ":$APP_PORT"; then # 지정된 포트가 LISTEN 상태인지 확인(grep -q : 결과만 확인하고 화면에는 출력하지 않음)
-         echo "Checking port $APP_PORT... [OK]"
-       else
-         echo "Checking port $APP_PORT... [FAIL]"
-         exit 1
-       fi
+      else
+      # PID 값이 존재하면 정상 실행 중
 
+          echo "Checking process '$APP_NAME'... [OK] (PID: $PID)"
+          # 프로세스 상태와 PID 출력
 
-       CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}') # CPU 사용률 조회, top 명령어 결과에서 Idle(유휴) 비율을 제외하여 실제 사용률 계산
+      fi
 
-       MEM=$(free | awk '/Mem:/ {printf("%.1f", $3/$2 * 100)}') # 메모리 사용률 조회, 사용 메모리 ÷ 전체 메모리 × 100
+      if ss -tulnp | grep -q ":$APP_PORT"; then
+      # 현재 열려있는 포트 목록에서 15034 포트 존재 여부 확인
 
-       DISK=$(df / | awk 'NR==2 {print $5}' | sed 's/%//') # 디스크 사용률 조회, 루트(/) 파티션의 사용률만 추출, sed를 이용하여 % 기호 제거
+          echo "Checking port $APP_PORT... [OK]"
+          # 포트 사용 중(정상) 메시지 출력
 
-       # 현재 시스템 자원 상태 출력
-       echo "CPU Usage : $CPU%"
+      else
+      # 포트가 열려있지 않은 경우
 
-       echo "MEM Usage : $MEM%"
+          echo "Checking port $APP_PORT... [FAIL]"
+          # 포트 확인 실패 출력
 
-       echo "DISK Used : $DISK%"
+          exit 1
+          # 오류 코드 1과 함께 종료
 
-       # 소수점 값을 정수로 변환, 임계값 비교를 위해 사용
-       CPU_INT=$(printf "%.0f" "$CPU")
-       MEM_INT=$(printf "%.0f" "$MEM")
+      fi
 
-       # CPU 사용률이 20%를 초과하면 경고 출력
-       if [ "$CPU_INT" -gt 20 ]; then
-           echo "[WARNING] CPU threshold exceeded ($CPU% > 20%)"
-       fi
+      SYS_CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print 100 - $8}')
+      # top 명령으로 CPU 상태 조회
+      # idle 비율을 제외하여 실제 CPU 사용률 계산
 
-       # 메모리 사용률이 10%를 초과하면 경고 출력
-       if [ "$MEM_INT" -gt 10 ]; then
-           echo "[WARNING] MEM threshold exceeded ($MEM% > 10%)"
-       fi
+      SYS_MEM=$(free | awk '/Mem:/ {printf("%.1f", $3/$2 * 100)}')
+      # free 명령으로 메모리 사용량 확인
+      # 사용 중 메모리 / 전체 메모리 × 100 계산
 
-       # 디스크 사용률이 80%를 초과하면 경고 출력
-       if [ "$DISK" -gt 80 ]; then
-           echo "[WARNING] DISK threshold exceeded ($DISK% > 80%)"
-       fi
-       # 로그 파일에 현재 상태 저장 (> 연산자는 덮어쓰기, >>는 기존 내용에 이어서 추가)
-       echo "[$NOW] PID:$PID CPU:$CPU% MEM:$MEM% DISK_USED:$DISK%" >> "$LOG_FILE"
+      DISK=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+      # 루트(/) 디스크 사용률 조회
+      # % 기호 제거 후 숫자만 저장
 
-       # 로그 저장 완료 메시지 출력
-       echo "[INFO] Log appended: $LOG_FILE"
+      PROC_CPU=$(ps -p "$PID" -o %cpu= | awk '{print $1}')
+      # Agent 프로세스의 CPU 사용률 조회
+
+      PROC_MEM=$(ps -p "$PID" -o %mem= | awk '{print $1}')
+      # Agent 프로세스의 메모리 사용률 조회
+
+      echo "[SYSTEM RESOURCE]"
+      # 시스템 자원 정보 영역 제목 출력
+
+      echo "CPU Usage : $SYS_CPU%"
+      # 전체 CPU 사용률 출력
+
+      echo "MEM Usage : $SYS_MEM%"
+      # 전체 메모리 사용률 출력
+
+      echo "DISK Used : $DISK%"
+      # 전체 디스크 사용률 출력
+
+      echo "[PROCESS RESOURCE]"
+      # 프로세스 자원 정보 영역 제목 출력
+
+      echo "Agent CPU Usage : $PROC_CPU%"
+      # Agent CPU 사용률 출력
+
+      echo "Agent MEM Usage : $PROC_MEM%"
+      # Agent 메모리 사용률 출력
+
+      SYS_CPU_INT=$(printf "%.0f" "$SYS_CPU")
+      # CPU 사용률을 소수점 없는 정수로 변환
+
+      SYS_MEM_INT=$(printf "%.0f" "$SYS_MEM")
+      # 메모리 사용률을 소수점 없는 정수로 변환
+
+      if [ "$SYS_CPU_INT" -gt 20 ]; then
+      # CPU 사용률이 20% 초과 시
+
+          echo "[WARNING] System CPU threshold exceeded ($SYS_CPU% > 20%)"
+          # CPU 경고 메시지 출력
+
+      fi
+
+      if [ "$SYS_MEM_INT" -gt 10 ]; then
+      # 메모리 사용률이 10% 초과 시
+
+          echo "[WARNING] System MEM threshold exceeded ($SYS_MEM% > 10%)"
+          # 메모리 경고 메시지 출력
+
+      fi
+
+      if [ "$DISK" -gt 80 ]; then
+      # 디스크 사용률이 80% 초과 시
+
+          echo "[WARNING] DISK threshold exceeded ($DISK% > 80%)"
+          # 디스크 경고 메시지 출력
+
+      fi
+
+      echo "[$NOW] PID:$PID SYS_CPU:$SYS_CPU% SYS_MEM:$SYS_MEM% PROC_CPU:$PROC_CPU%        PROC_MEM:$PROC_MEM% DISK_USED:$DISK%" >> "$LOG_FILE"
+      # 현재 시간, PID, CPU, 메모리, 디스크 사용률을
+      # monitor.log 파일에 누적 저장
+
+      echo "[INFO] Log appended: $LOG_FILE"
+      # 로그 파일 저장 완료 안내
 
       ```
 
@@ -419,7 +682,6 @@ Docker를 이용하여
 
       결과 이미지
       ![이미지설명](./image/35-1.png)
-      ![이미지설명](./image/35-2.png)
       ![이미지설명](./image/45.png)
       ![이미지설명](./image/44.png)
 
